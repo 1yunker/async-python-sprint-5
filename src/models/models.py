@@ -16,7 +16,7 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
-    username = Column(String(150), nullable=False, unique=True)
+    email = Column(String(150), nullable=False, unique=True)
     hashed_password = Column(String(150), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 

@@ -13,5 +13,7 @@ class AppSettings(BaseSettings):
     project_host: str = '127.0.0.1'
     project_port: int = 8000
 
+    secret: str = 'your-secret-key'
+
 
 app_settings = AppSettings()
