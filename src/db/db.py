@@ -13,7 +13,9 @@ engine = create_async_engine(
     echo=app_settings.echo | False,
     future=True
 )
+
 async_session = sessionmaker(
-    engine, class_=AsyncSession,
+    engine,
+    class_=AsyncSession,
     expire_on_commit=False
 )
