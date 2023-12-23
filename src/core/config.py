@@ -14,6 +14,8 @@ class AppSettings(BaseSettings):
     project_port: int = 8000
 
     secret: str = 'your-secret-key'
+    register_url: str = '/register'
+    token_url: str = '/auth'
 
 
 app_settings = AppSettings()

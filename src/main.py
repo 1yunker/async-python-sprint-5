@@ -1,7 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
-from sqlalchemy import inspect
 
 from api.v1 import base
 from core import config, logger
@@ -15,13 +14,11 @@ app = FastAPI(
 app.include_router(base.router, prefix='/api/v1')
 
 
-@app.on_event('startup')
-def setup():
-    print("Creating db tables...")
-    Base.metadata.create_all(bind=engine)
-    inspection = inspect(engine)
-    print(f"Created {len(inspection.get_table_names())} "
-          f"tables: {inspection.get_table_names()}")
+@app.on_event("startup")
+async def init_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
 
 
 if __name__ == '__main__':

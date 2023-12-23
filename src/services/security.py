@@ -2,7 +2,10 @@ from fastapi_login import LoginManager
 
 from core import config
 
-manager = LoginManager(config.secret, config.token_url)
+manager = LoginManager(
+    config.app_settings.secret,
+    config.app_settings.token_url
+)
 
 
 def hash_password(plaintext_password: str):
