@@ -1,10 +1,11 @@
 from fastapi_login import LoginManager
 
-from core import config
+from core.config import app_settings
 
 manager = LoginManager(
-    config.app_settings.secret,
-    config.app_settings.token_url
+    secret=app_settings.secret,
+    token_url=app_settings.token_url,
+    default_expiry=app_settings.token_expires,
 )
 
 
