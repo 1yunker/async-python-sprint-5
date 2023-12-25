@@ -5,6 +5,7 @@ from aioredis import Redis
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_login.exceptions import InvalidCredentialsException
+from sqlalchemy.future import select
 
 from core.config import app_settings
 from core.logger import LOGGING
@@ -13,7 +14,6 @@ from schemas.ping import Ping
 from schemas.user import UserCreate, UserResponse
 from services.security import manager, verify_password
 from services.user import create_user, get_user
-from sqlalchemy.future import select
 
 router = APIRouter()
 
@@ -67,7 +67,7 @@ async def get_ping(db=Depends(get_session)):
     Информация о времени доступа к связанным сервисам.
     """
     try:
-        start_db = datetime.utcnow()        
+        start_db = datetime.utcnow()
         await db.scalar(select(1))
         time_db = (datetime.utcnow() - start_db).total_seconds()
         logger.info('Send ping to DB.')
