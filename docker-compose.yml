@@ -1,0 +1,42 @@
+version: '3'
+
+volumes:
+  pg_data:
+  redis_data:
+  media_data:
+
+
+services:
+  db:
+    image: postgres:14.5
+    container_name: postgres
+    env_file: .env.example
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    restart: unless-stopped
+
+  cache:
+    image: redis:6
+    container_name: redis
+    volumes:
+        - redis_data:/data
+        - ./services/redis.conf:/usr/local/etc/redis/redis.conf
+    # expose:
+    #     - 6379
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+  
+  # fastapi-webserver:
+  #   build: .
+  #   # command: bash -c "cd /code/src && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8080"
+  #   command: bash -c "cd /code/src && uvicorn main:app --host 0.0.0.0 --port 8000"
+  #   ports:
+  #     - 8000:8000
+  #   env_file: .env.example
+  #   depends_on:
+  #     - db
+  #     - cache

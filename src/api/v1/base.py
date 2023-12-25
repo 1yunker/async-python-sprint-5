@@ -1,17 +1,19 @@
 import logging
 from datetime import datetime
 
+from aioredis import Redis
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_login.exceptions import InvalidCredentialsException
 
 from core.config import app_settings
 from core.logger import LOGGING
-from db.db import engine, get_session
+from db.db import get_session
 from schemas.ping import Ping
 from schemas.user import UserCreate, UserResponse
 from services.security import manager, verify_password
 from services.user import create_user, get_user
+from sqlalchemy.future import select
 
 router = APIRouter()
 
@@ -60,30 +62,33 @@ def private_route(user=Depends(manager)):
 
 
 @router.get('/ping', response_model=Ping, status_code=status.HTTP_200_OK)
-async def get_ping():
+async def get_ping(db=Depends(get_session)):
     """
     Информация о времени доступа к связанным сервисам.
     """
-    start_db = datetime.utcnow()
     try:
-        async with engine.begin():
-            time_db = (datetime.utcnow() - start_db).total_seconds()
+        start_db = datetime.utcnow()        
+        await db.scalar(select(1))
+        time_db = (datetime.utcnow() - start_db).total_seconds()
+        logger.info('Send ping to DB.')
     except Exception:
         time_db = 'Disconnected'
+        logger.warning('DB disconnected')
 
-    # redis_connection = redis.Redis(
-    #     host=app_settings.redis_host,
-    #     port=app_settings.redis_port,
-    #     decode_responses=True
-    # )
-    # start_redis = datetime.utcnow()
-    # await redis_connection.ping()
-    # finish_redis = datetime.utcnow()
+    try:
+        start_redis = datetime.utcnow()
+        redis_connection = Redis(
+            host=app_settings.redis_host,
+            port=app_settings.redis_port,
+            decode_responses=True
+        )
+        await redis_connection.ping()
+        time_redis = (datetime.utcnow() - start_redis).total_seconds()
+        logger.info('Send ping to Redis.')
+    except Exception:
+        time_redis = 'Disconnected'
+        logger.warning('Redis disconnected')
 
-    # time_redis = (finish_redis - start_redis).total_seconds()
-    time_redis = 0
-
-    logger.info('Send ping.')
     return {
         'db': time_db,
         'cache': time_redis

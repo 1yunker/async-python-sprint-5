@@ -10,6 +10,9 @@ class AppSettings(BaseSettings):
 
     database_dsn: PostgresDsn | None = None
     echo: bool = True
+    postgres_db: str = 'postgres'
+    postgres_user: str = 'postgres'
+    postgres_password: str = 'postgres'
 
     project_host: str = '127.0.0.1'
     project_port: int = 8000
