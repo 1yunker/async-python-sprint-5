@@ -10,9 +10,10 @@ from services.security import hash_password, manager
 
 
 @manager.user_loader(session_provider=get_session)
-async def get_user(email: str,
-                   db: Optional[AsyncSession] = None,
-                   session_provider: Optional[AsyncSession] = None
+async def get_user(
+    email: str,
+    db: Optional[AsyncSession] = None,
+    session_provider: Optional[AsyncSession] = None
 ) -> Optional[User]:
     """
     Return the user with the corresponding email.

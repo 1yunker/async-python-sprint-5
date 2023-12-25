@@ -1,17 +1,21 @@
 import logging
+import os
 from datetime import datetime
 
 from aioredis import Redis
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_login.exceptions import InvalidCredentialsException
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from core.config import app_settings
 from core.logger import LOGGING
 from db.db import get_session
+from schemas.file import FileResponse, FileUpload
 from schemas.ping import Ping
 from schemas.user import UserCreate, UserResponse
+from services.file import file_crud
 from services.security import manager, verify_password
 from services.user import create_user, get_user
 
@@ -21,26 +25,27 @@ logging.basicConfig = LOGGING
 logger = logging.getLogger()
 
 
-@router.post(app_settings.register_url)
-async def register(user: UserCreate, db=Depends(get_session)):
-    """
-    Регистрация пользователя.
-    """
+@router.post(
+    app_settings.register_url,
+    description='Регистрация пользователя.')
+async def register(user: UserCreate,
+                   db: AsyncSession = Depends(get_session)):
     db_user = await get_user(user.email, db)
     if db_user is not None:
-        raise HTTPException(status_code=400,
-                            detail="A user with this email already exists")
+        raise HTTPException(
+            status_code=400,
+            detail='A user with this email already exists'
+        )
     else:
         db_user = await create_user(db, user)
         return UserResponse(id=db_user.id, email=db_user.email)
 
 
-@router.post(app_settings.token_url)
+@router.post(
+    app_settings.token_url,
+    description='Авторизация пользователя.')
 async def login(data: OAuth2PasswordRequestForm = Depends(),
-                db=Depends(get_session)):
-    """
-    Авторизация пользователя.
-    """
+                db: AsyncSession = Depends(get_session)):
     email = data.username
     password = data.password
 
@@ -61,11 +66,12 @@ def private_route(user=Depends(manager)):
     return {"detail": f"Welcome {user.email}"}
 
 
-@router.get('/ping', response_model=Ping, status_code=status.HTTP_200_OK)
-async def get_ping(db=Depends(get_session)):
-    """
-    Информация о времени доступа к связанным сервисам.
-    """
+@router.get(
+    '/ping',
+    response_model=Ping,
+    status_code=status.HTTP_200_OK,
+    description='Информация о времени доступа к связанным сервисам.')
+async def get_ping(db: AsyncSession = Depends(get_session)):
     try:
         start_db = datetime.utcnow()
         await db.scalar(select(1))
@@ -93,3 +99,25 @@ async def get_ping(db=Depends(get_session)):
         'db': time_db,
         'cache': time_redis
     }
+
+
+@router.post(
+    '/files/upload',
+    response_model=FileResponse,
+    status_code=status.HTTP_201_CREATED,
+    description='Загрузить файл.'
+)
+async def upload_file(
+        path: str,
+        db: AsyncSession = Depends(get_session),
+        user=Depends(manager)
+):
+    file_obj = await file_crud.create(
+        db=db,
+        obj_in=FileUpload(user_id=user.id,
+                          path=path,
+                          name=os.path.split(path)[-1],
+                          size=os.path.getsize(path))
+    )
+    logger.info(f'Upload/put file {path} from {user.email}')
+    return file_obj

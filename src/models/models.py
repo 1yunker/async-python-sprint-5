@@ -33,4 +33,4 @@ class File(Base):
 
     path = Column(String(255), nullable=False, unique=True)
     size = Column(Integer, nullable=False)
-    is_downloadable = Column(Boolean, default=False)
+    is_downloadable = Column(Boolean, default=True)
