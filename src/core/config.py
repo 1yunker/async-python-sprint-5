@@ -25,5 +25,9 @@ class AppSettings(BaseSettings):
     token_url: str = '/auth'
     token_expires: timedelta = timedelta(minutes=30)
 
+    aws_access_key_id = 'YOUR_KEY'
+    aws_secret_access_key = 'YOUR_SECRET'
+    bucket = 'YOUR_BUCKET'
+
 
 app_settings = AppSettings()

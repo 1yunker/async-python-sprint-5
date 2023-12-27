@@ -1,9 +1,11 @@
+import aiofiles
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
 
 from aioredis import Redis
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_login.exceptions import InvalidCredentialsException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -108,7 +110,8 @@ async def get_ping(db: AsyncSession = Depends(get_session)):
     description='Загрузить файл.'
 )
 async def upload_file(
-        path: str,
+        # file: UploadFile,
+        path: str = '',
         db: AsyncSession = Depends(get_session),
         user=Depends(manager)
 ):
@@ -119,5 +122,18 @@ async def upload_file(
                           name=os.path.split(path)[-1],
                           size=os.path.getsize(path))
     )
+    # content = file.file.read()
+    # directory = f'uploads/{user.email}/{path}'
+    # p = Path(directory)
+    # try:
+    #     if not Path.exists(p):
+    #         Path(p).mkdir(parents=True, exist_ok=True)
+    #     async with aiofiles.open(Path(p, file_obj.name), "wb") as f:
+    #         await f.write(content)
+    # except Exception:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail='File not saved'
+    #     )
     logger.info(f'Upload/put file {path} from {user.email}')
     return file_obj
