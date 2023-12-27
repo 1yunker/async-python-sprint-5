@@ -1,6 +1,6 @@
 import boto3
 
-from src.core.config import app_settings
+from core.config import app_settings
 
 session = boto3.session.Session()
 s3 = session.client(
