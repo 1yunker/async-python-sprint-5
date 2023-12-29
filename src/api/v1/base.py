@@ -6,7 +6,7 @@ from datetime import datetime
 import boto3
 from aioredis import Redis
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse as FastapiFileResponse, Response
+from fastapi.responses import FileResponse as FastapiFileResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_login.exceptions import InvalidCredentialsException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -182,6 +182,9 @@ async def download_file_by_path_or_id(
 
     if file_obj:
         if file_obj.is_downloadable:
+            full_local_path_to_file = '/'.join(
+                [app_settings.local_download_dir, file_obj.name]
+            )
             session = boto3.session.Session()
             s3 = session.client(
                 service_name=app_settings.service_name,
@@ -189,7 +192,16 @@ async def download_file_by_path_or_id(
                 aws_access_key_id=app_settings.aws_access_key_id,
                 aws_secret_access_key=app_settings.aws_secret_access_key,
             )
-            s3.download_file(app_settings.bucket, file_obj.path, file_obj.name)
+            s3.download_file(app_settings.bucket, file_obj.path, full_local_path_to_file)
+            return FastapiFileResponse(
+                # path='/'.join(
+                #     [app_settings.end
+                # point_url, app_settings.bucket, file_obj.path]
+                # ),
+                path=full_local_path_to_file,
+                media_type='application/octet-stream',
+                filename=file_obj.name
+            )
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
