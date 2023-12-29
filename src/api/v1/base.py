@@ -2,11 +2,11 @@
 import logging
 import os
 from datetime import datetime
-# from pathlib import Path
 
 import boto3
 from aioredis import Redis
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse as FastapiFileResponse, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_login.exceptions import InvalidCredentialsException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +21,8 @@ from schemas.user import UserCreate, UserResponse
 from services.file import file_crud
 from services.security import manager, verify_password
 from services.user import create_user, get_user
+
+# from pathlib import Path
 
 router = APIRouter()
 
@@ -93,13 +95,13 @@ async def get_ping(db: AsyncSession = Depends(get_session)):
         time_redis = 'Disconnected'
         logger.warning('Redis disconnected')
 
-    return Ping(db=time_db, cache=time_redis)    
+    return Ping(db=time_db, cache=time_redis)
 
 
 @router.get(
     '/files',
     response_model=UserFilesResponse,
-    description='Информация о загруженных файлах.')
+    description='Информация о загруженных файлах текущего пользователя.')
 async def get_files_info(db: AsyncSession = Depends(get_session),
                          user=Depends(manager)):
     list_file_obj = await file_crud.get_multi_by_user_id(
@@ -147,10 +149,11 @@ async def upload_file(
         aws_secret_access_key=app_settings.aws_secret_access_key,
     )
 
-    full_path_to_file = f'uploads/{user.email}/{path}'
+    # full_path_to_file = f'uploads/{user.email}/{path}'
 
     try:
-        s3.upload_fileobj(file.file, app_settings.bucket, full_path_to_file)
+        # s3.upload_fileobj(file.file, app_settings.bucket, full_path_to_file)
+        s3.upload_fileobj(file.file, app_settings.bucket, path)
         logger.info(f'Upload/put file {path} from {user.email}')
     except Exception as err:
         logger.error(f'{err}')
@@ -160,3 +163,41 @@ async def upload_file(
         )
 
     return file_obj
+
+
+@router.get(
+    '/files/download',
+    status_code=status.HTTP_200_OK,
+    description='Скачать файл по переданному пути или по идентификатору.'
+)
+async def download_file_by_path_or_id(
+        path: str | int,
+        db: AsyncSession = Depends(get_session),
+        user=Depends(manager)
+):
+    if file_id := int(path):
+        file_obj = await file_crud.get(db=db, id=file_id)
+    else:
+        file_obj = await file_crud.get_by_path(db=db, path=path)
+
+    if file_obj:
+        if file_obj.is_downloadable:
+            session = boto3.session.Session()
+            s3 = session.client(
+                service_name=app_settings.service_name,
+                endpoint_url=app_settings.endpoint_url,
+                aws_access_key_id=app_settings.aws_access_key_id,
+                aws_secret_access_key=app_settings.aws_secret_access_key,
+            )
+            s3.download_file(app_settings.bucket, file_obj.path, file_obj.name)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='File is not downloadable'
+            )
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='File not found'
+        )

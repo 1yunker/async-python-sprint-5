@@ -37,13 +37,22 @@ class RepositoryDB(
     def __init__(self, model: Type[ModelType]):
         self._model = model
 
-    async def get(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
+    async def get(
+            self, db: AsyncSession, id: Any
+    ) -> Optional[ModelType]:
         statement = select(self._model).where(self._model.id == id)
         results = await db.execute(statement=statement)
         return results.scalar_one_or_none()
 
+    async def get_by_path(
+            self, db: AsyncSession, path: Any
+    ) -> Optional[ModelType]:
+        statement = select(self._model).where(self._model.path == path)
+        results = await db.execute(statement=statement)
+        return results.scalar_one_or_none()
+
     async def get_multi_by_user_id(
-        self, db: AsyncSession, user_id: Any, *, skip=0, limit=100
+            self, db: AsyncSession, user_id: Any, *, skip=0, limit=100
     ) -> List[ModelType]:
         statement = (
             select(self._model).
@@ -55,7 +64,7 @@ class RepositoryDB(
         return results.scalars().all()
 
     async def create(
-        self, db: AsyncSession, *, obj_in: CreateSchemaType
+            self, db: AsyncSession, *, obj_in: CreateSchemaType
     ) -> ModelType:
         obj_in_data = jsonable_encoder(obj_in)
         db_obj = self._model(**obj_in_data)
@@ -65,11 +74,11 @@ class RepositoryDB(
         return db_obj
 
     async def update(
-        self,
-        db: AsyncSession,
-        *,
-        db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]]
+            self,
+            db: AsyncSession,
+            *,
+            db_obj: ModelType,
+            obj_in: Union[UpdateSchemaType, Dict[str, Any]]
     ) -> ModelType:
         statement = (
             update(self._model).
