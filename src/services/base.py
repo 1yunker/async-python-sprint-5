@@ -42,10 +42,15 @@ class RepositoryDB(
         results = await db.execute(statement=statement)
         return results.scalar_one_or_none()
 
-    async def get_multi(
-        self, db: AsyncSession, *, skip=0, limit=100
+    async def get_multi_by_user_id(
+        self, db: AsyncSession, user_id: Any, *, skip=0, limit=100
     ) -> List[ModelType]:
-        statement = select(self._model).offset(skip).limit(limit)
+        statement = (
+            select(self._model).
+            where(self._model.user_id == user_id).
+            offset(skip).
+            limit(limit)
+        )
         results = await db.execute(statement=statement)
         return results.scalars().all()
 

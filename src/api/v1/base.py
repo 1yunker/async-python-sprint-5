@@ -2,7 +2,7 @@
 import logging
 import os
 from datetime import datetime
-from pathlib import Path
+# from pathlib import Path
 
 import boto3
 from aioredis import Redis
@@ -15,7 +15,7 @@ from sqlalchemy.future import select
 from core.config import app_settings
 from core.logger import LOGGING
 from db.db import get_session
-from schemas.file import FileResponse, FileUpload
+from schemas.file import FileResponse, FileUpload, UserFilesResponse
 from schemas.ping import Ping
 from schemas.user import UserCreate, UserResponse
 from services.file import file_crud
@@ -64,11 +64,6 @@ async def login(data: OAuth2PasswordRequestForm = Depends(),
     return {'access_token': access_token, 'token_type': 'Bearer'}
 
 
-@router.get('/private')
-def private_route(user=Depends(manager)):
-    return {"detail": f"Welcome {user.email}"}
-
-
 @router.get(
     '/ping',
     response_model=Ping,
@@ -98,10 +93,20 @@ async def get_ping(db: AsyncSession = Depends(get_session)):
         time_redis = 'Disconnected'
         logger.warning('Redis disconnected')
 
-    return {
-        'db': time_db,
-        'cache': time_redis
-    }
+    return Ping(db=time_db, cache=time_redis)    
+
+
+@router.get(
+    '/files',
+    response_model=UserFilesResponse,
+    description='Информация о загруженных файлах.')
+async def get_files_info(db: AsyncSession = Depends(get_session),
+                         user=Depends(manager)):
+    list_file_obj = await file_crud.get_multi_by_user_id(
+        db=db,
+        user_id=user.id
+    )
+    return UserFilesResponse(account_id=user.id, files=list_file_obj)
 
 
 @router.post(
