@@ -25,6 +25,8 @@ class AppSettings(BaseSettings):
     token_url: str = '/auth'
     token_expires: timedelta = timedelta(minutes=30)
 
+    service_name: str = 's3'
+    endpoint_url: str = 'https://storage.yandexcloud.net'
     aws_access_key_id: str = 'YOUR_KEY'
     aws_secret_access_key: str = 'YOUR_SECRET'
     bucket: str = 'YOUR_BUCKET'

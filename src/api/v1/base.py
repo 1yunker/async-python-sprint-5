@@ -2,6 +2,7 @@
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
 
 import boto3
 from aioredis import Redis
@@ -20,9 +21,6 @@ from schemas.user import UserCreate, UserResponse
 from services.file import file_crud
 from services.security import manager, verify_password
 from services.user import create_user, get_user
-
-# from pathlib import Path
-
 
 router = APIRouter()
 
@@ -113,46 +111,47 @@ async def get_ping(db: AsyncSession = Depends(get_session)):
     description='Загрузить файл.'
 )
 async def upload_file(
-        # file: UploadFile,
+        file: UploadFile,
         path: str = '',
         db: AsyncSession = Depends(get_session),
         user=Depends(manager)
 ):
+    name = file.filename
+    if not path:
+        path = file.filename
+    elif path[-1] == '/':
+        # path: <path-to-folder>
+        path += file.filename
+    else:
+        # path: <full-path-to-file>
+        name = os.path.split(path)[-1]
+
     file_obj = await file_crud.create(
         db=db,
         obj_in=FileUpload(user_id=user.id,
                           path=path,
-                          name=os.path.split(path)[-1],
-                          size=os.path.getsize(path))
+                          name=name,
+                          size=file.size)
     )
 
     session = boto3.session.Session()
     s3 = session.client(
-        service_name='s3',
-        endpoint_url='https://storage.yandexcloud.net',
+        service_name=app_settings.service_name,
+        endpoint_url=app_settings.endpoint_url,
         aws_access_key_id=app_settings.aws_access_key_id,
         aws_secret_access_key=app_settings.aws_secret_access_key,
     )
-    # Загрузить объекты в бакет из строки
-    s3.put_object(
-        Bucket=app_settings.bucket,
-        Key='py_script.py',
-        Body='TEST',
-        StorageClass='COLD'
-    )
 
-    # content = file.file.read()
-    # directory = f'uploads/{user.email}/{path}'
-    # p = Path(directory)
-    # try:
-    #     if not Path.exists(p):
-    #         Path(p).mkdir(parents=True, exist_ok=True)
-    #     async with aiofiles.open(Path(p, file_obj.name), "wb") as f:
-    #         await f.write(content)
-    # except Exception:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail='File not saved'
-    #     )
-    logger.info(f'Upload/put file {path} from {user.email}')
+    full_path_to_file = f'uploads/{user.email}/{path}'
+
+    try:
+        s3.upload_fileobj(file.file, app_settings.bucket, full_path_to_file)
+        logger.info(f'Upload/put file {path} from {user.email}')
+    except Exception as err:
+        logger.error(f'{err}')
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='Something went wrong'
+        )
+
     return file_obj
