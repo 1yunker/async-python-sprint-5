@@ -35,7 +35,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: webserver
-    command: bash -c "cd /app/src && alembic upgrade head && uvicorn main:app --host 127.0.0.1 --port 8000"
+    command: bash -c "cd /app && alembic upgrade head && cd /src && uvicorn main:app --host 0.0.0.0 --port 8000"
+    # command: bash -c "cd /app/src && uvicorn main:app --host 0.0.0.0 --port 8000"
     ports:
       - 8000:8000
     env_file: .env.example

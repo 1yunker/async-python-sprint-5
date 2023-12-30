@@ -5,6 +5,7 @@ ENV PYTHONUNBUFFERED 1
 
 WORKDIR /app
 COPY migrations ./migrations
-COPY alembic.ini .env.example requirements.txt src/ ./
+COPY src ./src
+COPY alembic.ini .env.example requirements.txt ./
 
 RUN pip3 install --no-cache-dir -U -r requirements.txt
