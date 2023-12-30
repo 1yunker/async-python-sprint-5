@@ -7,9 +7,9 @@ class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env.example')
 
     app_title: str = 'Default_title'
+    echo: bool = True
 
     database_dsn: PostgresDsn | None = None
-    echo: bool = True
     postgres_db: str = 'postgres'
     postgres_user: str = 'postgres'
     postgres_password: str = 'postgres'

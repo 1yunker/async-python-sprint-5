@@ -123,23 +123,32 @@ async def upload_file(
         db: AsyncSession = Depends(get_session),
         user=Depends(manager)
 ):
-    name = file.filename
+    file_name = file.filename
+    prefix_path = f'{user.email}/'
     if not path:
-        path = file.filename
+        path = prefix_path + file_name
     elif path[-1] == '/':
         # path: <path-to-folder>
-        path += file.filename
+        path = prefix_path + path + file_name
     else:
         # path: <full-path-to-file>
-        name = os.path.split(path)[-1]
+        file_name = os.path.split(path)[-1]
+        path = prefix_path + path
 
-    file_obj = await file_crud.create(
-        db=db,
-        obj_in=FileUpload(user_id=user.id,
-                          path=path,
-                          name=name,
-                          size=file.size)
-    )
+    try:
+        file_obj = await file_crud.create(
+            db=db,
+            obj_in=FileUpload(user_id=user.id,
+                              path=path,
+                              name=file_name,
+                              size=file.size)
+        )
+    except Exception as err:
+        logger.error(f'{err}')
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f'Error: {err}'
+        )
 
     session = boto3.session.Session()
     s3 = session.client(
@@ -148,11 +157,7 @@ async def upload_file(
         aws_access_key_id=app_settings.aws_access_key_id,
         aws_secret_access_key=app_settings.aws_secret_access_key,
     )
-
-    # full_path_to_file = f'uploads/{user.email}/{path}'
-
     try:
-        # s3.upload_fileobj(file.file, app_settings.bucket, full_path_to_file)
         s3.upload_fileobj(file.file, app_settings.bucket, path)
         logger.info(f'Upload/put file {path} from {user.email}')
     except Exception as err:
@@ -192,12 +197,12 @@ async def download_file_by_path_or_id(
                 aws_access_key_id=app_settings.aws_access_key_id,
                 aws_secret_access_key=app_settings.aws_secret_access_key,
             )
-            s3.download_file(app_settings.bucket, file_obj.path, full_local_path_to_file)
+            s3.download_file(
+                app_settings.bucket,
+                file_obj.path,
+                full_local_path_to_file
+            )
             return FastapiFileResponse(
-                # path='/'.join(
-                #     [app_settings.end
-                # point_url, app_settings.bucket, file_obj.path]
-                # ),
                 path=full_local_path_to_file,
                 media_type='application/octet-stream',
                 filename=file_obj.name
