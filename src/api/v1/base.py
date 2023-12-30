@@ -38,7 +38,7 @@ async def register(user: UserCreate,
     db_user = await get_user(user.email, db)
     if db_user is not None:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail='A user with this email already exists'
         )
     else:
@@ -48,16 +48,15 @@ async def register(user: UserCreate,
 
 @router.post(
     app_settings.token_url,
-    description='Авторизация пользователя.')
-async def login(data: OAuth2PasswordRequestForm = Depends(),
-                db: AsyncSession = Depends(get_session)):
-    email = data.username
-    password = data.password
-
-    user = await get_user(email, db)
+    description='Авторизация пользователя и получение токена.')
+async def login(
+        data: OAuth2PasswordRequestForm = Depends(),
+        db: AsyncSession = Depends(get_session)
+):
+    user = await get_user(email=data.username, db=db)
     if user is None:
         raise InvalidCredentialsException
-    elif not verify_password(password, user.hashed_password):
+    elif not verify_password(data.password, user.hashed_password):
         raise InvalidCredentialsException
 
     access_token = manager.create_access_token(
@@ -72,6 +71,7 @@ async def login(data: OAuth2PasswordRequestForm = Depends(),
     status_code=status.HTTP_200_OK,
     description='Информация о времени доступа к связанным сервисам.')
 async def get_ping(db: AsyncSession = Depends(get_session)):
+    # Test connection to DB
     try:
         start_db = datetime.utcnow()
         await db.scalar(select(1))
@@ -81,6 +81,7 @@ async def get_ping(db: AsyncSession = Depends(get_session)):
         time_db = 'Disconnected'
         logger.warning('DB disconnected')
 
+    # Test connection to Redis
     try:
         start_redis = datetime.utcnow()
         redis_connection = Redis(
@@ -102,8 +103,10 @@ async def get_ping(db: AsyncSession = Depends(get_session)):
     '/files',
     response_model=UserFilesResponse,
     description='Информация о загруженных файлах текущего пользователя.')
-async def get_files_info(db: AsyncSession = Depends(get_session),
-                         user=Depends(manager)):
+async def get_files_info(
+        db: AsyncSession = Depends(get_session),
+        user=Depends(manager)
+):
     list_file_obj = await file_crud.get_multi_by_user_id(
         db=db,
         user_id=user.id
