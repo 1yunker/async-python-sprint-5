@@ -30,13 +30,15 @@ services:
     restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
   
-  # fastapi-webserver:
-  #   build: .
-  #   # command: bash -c "cd /code/src && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8080"
-  #   command: bash -c "cd /code/src && uvicorn main:app --host 0.0.0.0 --port 8000"
-  #   ports:
-  #     - 8000:8000
-  #   env_file: .env.example
-  #   depends_on:
-  #     - db
-  #     - cache
+  fastapi-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webserver
+    command: bash -c "cd /app/src && alembic upgrade head && uvicorn main:app --host 127.0.0.1 --port 8000"
+    ports:
+      - 8000:8000
+    env_file: .env.example
+    depends_on:
+      - db
+      - cache
