@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 from pydantic import PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

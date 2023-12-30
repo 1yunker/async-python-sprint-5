@@ -3,9 +3,8 @@ import logging
 import os
 from datetime import datetime
 
-import boto3
 from aioredis import Redis
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse as FastapiFileResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_login.exceptions import InvalidCredentialsException
@@ -18,6 +17,7 @@ from db.db import get_session
 from schemas.file import FileResponse, FileUpload, UserFilesResponse
 from schemas.ping import Ping
 from schemas.user import UserCreate, UserResponse
+from services.boto3 import get_s3_client
 from services.file import file_crud
 from services.security import manager, verify_password
 from services.user import create_user, get_user
@@ -123,6 +123,7 @@ async def upload_file(
         db: AsyncSession = Depends(get_session),
         user=Depends(manager)
 ):
+    # Prepare "file_name" and "path" params
     file_name = file.filename
     prefix_path = f'{user.email}/'
     if not path:
@@ -135,6 +136,7 @@ async def upload_file(
         file_name = os.path.split(path)[-1]
         path = prefix_path + path
 
+    # Write file in DB
     try:
         file_obj = await file_crud.create(
             db=db,
@@ -150,13 +152,8 @@ async def upload_file(
             detail=f'Error: {err}'
         )
 
-    session = boto3.session.Session()
-    s3 = session.client(
-        service_name=app_settings.service_name,
-        endpoint_url=app_settings.endpoint_url,
-        aws_access_key_id=app_settings.aws_access_key_id,
-        aws_secret_access_key=app_settings.aws_secret_access_key,
-    )
+    # Upload file in S3 storage
+    s3 = get_s3_client()
     try:
         s3.upload_fileobj(file.file, app_settings.bucket, path)
         logger.info(f'Upload/put file {path} from {user.email}')
@@ -180,6 +177,7 @@ async def download_file_by_path_or_id(
         db: AsyncSession = Depends(get_session),
         user=Depends(manager)
 ):
+    # Get file_obj from DB
     if file_id := int(path):
         file_obj = await file_crud.get(db=db, id=file_id)
     else:
@@ -190,13 +188,8 @@ async def download_file_by_path_or_id(
             full_local_path_to_file = '/'.join(
                 [app_settings.local_download_dir, file_obj.name]
             )
-            session = boto3.session.Session()
-            s3 = session.client(
-                service_name=app_settings.service_name,
-                endpoint_url=app_settings.endpoint_url,
-                aws_access_key_id=app_settings.aws_access_key_id,
-                aws_secret_access_key=app_settings.aws_secret_access_key,
-            )
+            # Download file from S3 storage
+            s3 = get_s3_client()
             s3.download_file(
                 app_settings.bucket,
                 file_obj.path,

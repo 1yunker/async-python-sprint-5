@@ -1,43 +1,27 @@
+import logging
+
 import boto3
+from fastapi import HTTPException, status
 
 from core.config import app_settings
+from core.logger import LOGGING
 
-session = boto3.session.Session()
-s3 = session.client(
-    service_name='s3',
-    endpoint_url='https://storage.yandexcloud.net',
-    aws_access_key_id=app_settings.aws_access_key_id,
-    aws_secret_access_key=app_settings.aws_secret_access_key,
-)
+logging.basicConfig = LOGGING
+logger = logging.getLogger()
 
-# # Создать новый бакет
-# s3.create_bucket(Bucket='bucket-name')
 
-# Загрузить объекты в бакет
-
-## Из строки
-s3.put_object(
-    Bucket=app_settings.bucket,
-    Key='py_script.py',
-    Body='TEST',
-    StorageClass='COLD'
-)
-
-# ## Из файла
-# s3.upload_file('this_script.py', 'bucket-name', 'py_script.py')
-# s3.upload_file('this_script.py', 'bucket-name', 'script/py_script.py')
-
-# # Получить список объектов в бакете
-# for key in s3.list_objects(Bucket='bucket-name')['Contents']:
-#     print(key['Key'])
-
-# # Удалить несколько объектов
-# forDeletion = [{'Key':'object_name'}, {'Key':'script/py_script.py'}]
-# response = s3.delete_objects(Bucket='bucket-name', Delete={'Objects': forDeletion})
-
-# Получить объект
-get_object_response = s3.get_object(
-    Bucket=app_settings.bucket,
-    Key='py_script.py'
-)
-print(get_object_response['Body'].read())
+def get_s3_client():
+    session = boto3.session.Session()
+    try:
+        return session.client(
+            service_name=app_settings.service_name,
+            endpoint_url=app_settings.endpoint_url,
+            aws_access_key_id=app_settings.aws_access_key_id,
+            aws_secret_access_key=app_settings.aws_secret_access_key,
+        )
+    except Exception as err:
+        logger.error(err)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Error: {err}'
+        )

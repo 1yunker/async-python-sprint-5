@@ -4,8 +4,9 @@ from fastapi.responses import ORJSONResponse
 
 from api.v1 import base
 from core import config, logger
-from db.db import engine
-from models import Base
+
+# from db.db import engine
+# from models import Base
 
 app = FastAPI(
     title=config.app_settings.app_title,
