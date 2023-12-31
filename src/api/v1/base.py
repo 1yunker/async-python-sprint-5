@@ -159,7 +159,7 @@ async def upload_file(
     s3 = get_s3_client()
     try:
         s3.upload_fileobj(file.file, app_settings.bucket, path)
-        logger.info(f'Upload/put file {path} from {user.email}')
+        logger.info(f'Upload file {path} from {user.email}')
     except Exception as err:
         logger.error(f'{err}')
         raise HTTPException(

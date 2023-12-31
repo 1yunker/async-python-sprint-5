@@ -14,8 +14,8 @@ def get_s3_client():
     session = boto3.session.Session()
     try:
         return session.client(
-            service_name=app_settings.service_name,
-            endpoint_url=app_settings.endpoint_url,
+            service_name=app_settings.s3_service_name,
+            endpoint_url=app_settings.s3_endpoint_url,
             aws_access_key_id=app_settings.aws_access_key_id,
             aws_secret_access_key=app_settings.aws_secret_access_key,
         )

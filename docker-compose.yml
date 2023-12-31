@@ -5,7 +5,6 @@ volumes:
   redis_data:
   media_data:
 
-
 services:
   db:
     image: postgres:14.5
@@ -35,11 +34,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: webserver
-    command: bash -c "cd /app && alembic upgrade head && cd /src && uvicorn main:app --host 0.0.0.0 --port 8000"
-    # command: bash -c "cd /app/src && uvicorn main:app --host 0.0.0.0 --port 8000"
+    volumes:
+      - media_data:/app/downloads
+    env_file: .env.example
     ports:
       - 8000:8000
-    env_file: .env.example
+    command: bash -c "cd /app && alembic upgrade head && cd /app/src && uvicorn main:app --host 0.0.0.0 --port 8000"
     depends_on:
       - db
       - cache
