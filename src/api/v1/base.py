@@ -188,9 +188,13 @@ async def download_file_by_path_or_id(
 
     if file_obj:
         if file_obj.is_downloadable:
-            full_local_path_to_file = '/'.join(
-                [app_settings.local_download_dir, file_obj.name]
+            full_local_path = '/'.join(
+                [app_settings.local_download_dir, user.email]
             )
+            full_local_path_to_file = '/'.join(
+                [full_local_path, file_obj.name]
+            )
+            os.makedirs(full_local_path)
             # Download file from S3 storage
             s3 = get_s3_client()
             s3.download_file(
