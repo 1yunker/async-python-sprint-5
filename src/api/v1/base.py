@@ -31,6 +31,7 @@ logger = logging.getLogger()
 
 @router.post(
     app_settings.register_url,
+    status_code=status.HTTP_201_CREATED,
     description='Регистрация пользователя.')
 async def register(user: UserCreate,
                    db: AsyncSession = Depends(get_session)):
@@ -189,15 +190,17 @@ async def download_file_by_path_or_id(
 
     if file_obj:
         if file_obj.is_downloadable:
+            # Create dirs by full_local_path
             full_local_path = '/'.join(
                 [app_settings.local_download_dir, user.email]
             )
+            os.makedirs(full_local_path)
+
+            # Download file from S3 storage
+            s3 = get_s3_client()
             full_local_path_to_file = '/'.join(
                 [full_local_path, file_obj.name]
             )
-            os.makedirs(full_local_path)
-            # Download file from S3 storage
-            s3 = get_s3_client()
             s3.download_file(
                 app_settings.bucket,
                 file_obj.path,

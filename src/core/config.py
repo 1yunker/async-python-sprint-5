@@ -32,7 +32,7 @@ class AppSettings(BaseSettings):
     s3_service_name: str = 's3'
     s3_endpoint_url: str = 'https://storage.yandexcloud.net'
     aws_access_key_id: str = 'YOUR_KEY'
-    aws_secret_access_key: str = 'YOUR_SECRET'
+    aws_secret_access_key: str = 'YOUR_SECRET_KEY'
     bucket: str = 'YOUR_BUCKET'
 
     local_download_dir: str = '/app/downloads'
