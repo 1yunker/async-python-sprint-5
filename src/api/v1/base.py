@@ -7,6 +7,7 @@ from aioredis import Redis
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse as FastapiFileResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_cache.decorator import cache
 from fastapi_login.exceptions import InvalidCredentialsException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -21,8 +22,6 @@ from services.boto3 import get_s3_client
 from services.file import file_crud
 from services.security import manager, verify_password
 from services.user import create_user, get_user
-
-# from pathlib import Path
 
 router = APIRouter()
 
@@ -103,6 +102,7 @@ async def get_ping(db: AsyncSession = Depends(get_session)):
     '/files',
     response_model=UserFilesResponse,
     description='Информация о загруженных файлах текущего пользователя.')
+@cache(expire=30)
 async def get_files_info(
         db: AsyncSession = Depends(get_session),
         user=Depends(manager)
@@ -175,6 +175,7 @@ async def upload_file(
     status_code=status.HTTP_200_OK,
     description='Скачать файл по переданному пути или по идентификатору.'
 )
+@cache(expire=60)
 async def download_file_by_path_or_id(
         path: str | int,
         db: AsyncSession = Depends(get_session),

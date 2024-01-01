@@ -4,7 +4,6 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 WORKDIR /app
-COPY downloads ./downloads
 COPY migrations ./migrations
 COPY src ./src
 COPY alembic.ini .env.example requirements.txt ./
