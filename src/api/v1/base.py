@@ -177,13 +177,13 @@ async def upload_file(
 )
 @cache(expire=60)
 async def download_file_by_path_or_id(
-        path: str | int,
+        path: str,
         db: AsyncSession = Depends(get_session),
         user=Depends(manager)
 ):
     # Get file_obj from DB
-    if file_id := int(path):
-        file_obj = await file_crud.get(db=db, id=file_id)
+    if path.isnumeric():
+        file_obj = await file_crud.get(db=db, id=int(path))
     else:
         file_obj = await file_crud.get_by_path(db=db, path=path)
 
