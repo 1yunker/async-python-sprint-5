@@ -13,17 +13,7 @@ app = FastAPI(
     title=app_settings.app_title,
     default_response_class=ORJSONResponse,
 )
-# app.include_router(base.router, prefix='/api/v1')
 app.include_router(base.router)
-
-
-# @app.on_event('startup')
-# async def init_tables():
-#     from db.db import engine
-#     from models import Base
-#     async with engine.begin() as conn:
-#         await conn.run_sync(Base.metadata.drop_all)
-#         await conn.run_sync(Base.metadata.create_all)
 
 
 @app.on_event("startup")

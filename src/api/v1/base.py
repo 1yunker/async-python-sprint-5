@@ -193,7 +193,7 @@ async def download_file_by_path_or_id(
             full_local_path = '/'.join(
                 [app_settings.local_download_dir, user.email]
             )
-            os.makedirs(full_local_path)
+            os.makedirs(full_local_path, exist_ok=True)
 
             # Download file from S3 storage
             s3 = get_s3_client()
