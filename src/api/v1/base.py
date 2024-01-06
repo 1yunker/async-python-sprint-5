@@ -2,6 +2,8 @@ import logging
 import os
 from datetime import datetime
 
+from aiofiles.os import makedirs
+from aiohttp import web
 from aioredis import Redis
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse as FastapiFileResponse
@@ -157,15 +159,16 @@ async def upload_file(
 
     # Upload file in S3 storage
     s3 = get_s3_client()
-    try:
-        s3.upload_fileobj(file.file, app_settings.bucket, path)
-        logger.info(f'Upload file {path} from {user.email}')
-    except Exception as err:
-        logger.error(f'{err}')
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Something went wrong'
-        )
+    async with s3:
+        try:
+            await s3._client.upload_fileobj(file.file, app_settings.bucket, path)
+            logger.info(f'Upload file {path} from {user.email}')
+        except Exception as err:
+            logger.error(f'{err}')
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='Something went wrong'
+            )
 
     return file_obj
 
@@ -193,31 +196,29 @@ async def download_file_by_path_or_id(
             full_local_path = '/'.join(
                 [app_settings.local_download_dir, user.email]
             )
-            os.makedirs(full_local_path, exist_ok=True)
+            await makedirs(full_local_path, exist_ok=True)
 
             # Download file from S3 storage
             s3 = get_s3_client()
             full_local_path_to_file = '/'.join(
                 [full_local_path, file_obj.name]
             )
-            s3.download_file(
-                app_settings.bucket,
-                file_obj.path,
-                full_local_path_to_file
-            )
-            return FastapiFileResponse(
-                path=full_local_path_to_file,
-                media_type='application/octet-stream',
-                filename=file_obj.name
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail='File is not downloadable'
-            )
-
-    else:
+            async with s3:
+                await s3._client.download_file(
+                    app_settings.bucket,
+                    file_obj.path,
+                    full_local_path_to_file
+                )
+                return FastapiFileResponse(
+                    path=full_local_path_to_file,
+                    media_type='application/octet-stream',
+                    filename=file_obj.name
+                )
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='File not found'
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='File is not downloadable'
         )
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail='File not found'
+    )

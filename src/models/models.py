@@ -27,7 +27,11 @@ class File(Base):
     __tablename__ = 'files'
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(
+        Integer,
+        ForeignKey('users.id', ondelete='CASCADE'),
+        nullable=False
+    )
     name = Column(String(150), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 

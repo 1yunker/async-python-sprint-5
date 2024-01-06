@@ -1,6 +1,6 @@
 import logging
 
-import boto3
+import aioboto3
 from fastapi import HTTPException, status
 
 from core.config import app_settings
@@ -11,7 +11,7 @@ logger = logging.getLogger()
 
 
 def get_s3_client():
-    session = boto3.session.Session()
+    session = aioboto3.session.Session()
     try:
         return session.client(
             service_name=app_settings.s3_service_name,
