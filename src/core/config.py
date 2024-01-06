@@ -35,8 +35,8 @@ class AppSettings(BaseSettings):
     aws_secret_access_key: str = 'YOUR_SECRET_KEY'
     bucket: str = 'YOUR_BUCKET'
 
-    # local_download_dir: str = '/app/downloads'
-    local_download_dir: str = 'downloads'
+    local_download_dir: str = '/app/downloads'
+    # local_download_dir: str = 'downloads'
 
 
 app_settings = AppSettings()

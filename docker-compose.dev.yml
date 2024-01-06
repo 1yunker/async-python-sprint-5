@@ -12,6 +12,8 @@ services:
     env_file: .env.example
     volumes:
       - pg_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
     restart: unless-stopped
 
   cache:
@@ -20,8 +22,8 @@ services:
     volumes:
         - redis_data:/data
         - ./services/redis.conf:/usr/local/etc/redis/redis.conf
-    expose:
-        - 6379
+    ports:
+      - 6379:6379
     restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
   
